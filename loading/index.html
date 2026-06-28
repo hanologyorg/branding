@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>漢流 — Liquid Loader</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@200;300;400;500;600;700;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* Theme tokens — extracted from @hanology/cham-browser/template/src/styles/main.css */
+    :root,
+    [data-theme="light"] {
+      --paper: #faf6ee;
+      --ink: #2a2620;
+      --ink-faint: #a89b8a;
+      --vermillion: #c23a2b;
+      --serif: 'Noto Serif TC', '宋體-繁', serif;
+      --sans: 'Noto Sans TC', sans-serif;
+      --logo: url("../logo/hanology-logo_logo-white.svg");
+    }
+    [data-theme="warm"] {
+      --paper: #f0e4c8;
+      --ink: #3a2e1a;
+      --ink-faint: #a8997f;
+      --vermillion: #a8321f;
+      --logo: url("../logo/hanology-logo_logo-white.svg");
+    }
+    [data-theme="dark"] {
+      --paper: #1c1c1e;
+      --ink: #e8e6e0;
+      --ink-faint: #6a6258;
+      --vermillion: #e05545;
+      --logo: url("../logo/hanology-logo_logo-red.svg");
+    }
+    [data-theme="oled"] {
+      --paper: #000000;
+      --ink: #e8e6e0;
+      --ink-faint: #606060;
+      --vermillion: #ff4444;
+      --logo: url("../logo/hanology-logo_logo-red.svg");
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 48px 24px 32px;
+    }
+
+    header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+      text-align: center;
+    }
+
+    h1 {
+      font-family: var(--serif);
+      font-weight: 200;
+      font-size: 28px;
+      letter-spacing: 8px;
+      color: var(--vermillion);
+    }
+
+    h1 .en {
+      display: block;
+      font-family: var(--sans);
+      font-weight: 300;
+      font-size: 13px;
+      letter-spacing: 4px;
+      color: var(--ink-faint);
+      margin-top: 6px;
+    }
+
+    .themes { display: flex; gap: 6px; }
+
+    .themes button {
+      padding: 6px 14px;
+      border: 1px solid var(--ink-faint);
+      background: transparent;
+      color: var(--ink-faint);
+      font-family: var(--sans);
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.15s ease;
+    }
+
+    .themes button:hover { color: var(--vermillion); border-color: var(--vermillion); }
+    .themes button.active { color: var(--vermillion); border-color: var(--vermillion); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0;
+      flex: 1;
+      border: 1px solid color-mix(in srgb, var(--ink-faint) 25%, transparent);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      padding: 64px 32px;
+      min-height: 320px;
+      border-bottom: 1px solid color-mix(in srgb, var(--ink-faint) 25%, transparent);
+      position: relative;
+    }
+
+    .panel:last-child { border-bottom: none; }
+
+    .panel-label {
+      position: absolute;
+      bottom: 20px;
+      left: 24px;
+      right: 24px;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      text-align: center;
+    }
+
+    .panel-label .zh {
+      display: block;
+      font-family: var(--serif);
+      font-size: 13px;
+      letter-spacing: 4px;
+      color: var(--ink);
+      margin-bottom: 4px;
+      text-transform: none;
+    }
+
+    footer {
+      margin-top: 32px;
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: var(--ink-faint);
+      text-align: center;
+      line-height: 1.8;
+    }
+    footer code {
+      font-family: 'JetBrains Mono', 'SF Mono', monospace;
+      font-size: 10px;
+      color: var(--vermillion);
+    }
+
+    .config {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 32px;
+      padding: 20px;
+      border: 1px solid color-mix(in srgb, var(--ink-faint) 25%, transparent);
+      border-radius: 4px;
+    }
+
+    .cfg-field {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .cfg-label {
+      min-width: 72px;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+    }
+
+    .config input[type="range"] {
+      flex: 1;
+      accent-color: var(--vermillion);
+    }
+
+    .config output {
+      font-family: 'JetBrains Mono', 'SF Mono', monospace;
+      font-size: 11px;
+      color: var(--vermillion);
+      min-width: 32px;
+    }
+
+    .config input[type="text"] {
+      width: 48px;
+      padding: 4px 8px;
+      border: 1px solid var(--ink-faint);
+      background: transparent;
+      color: var(--ink);
+      font-family: var(--serif);
+      font-size: 16px;
+      text-align: center;
+      border-radius: 2px;
+    }
+
+    .config input[type="text"]:focus {
+      outline: none;
+      border-color: var(--vermillion);
+      color: var(--vermillion);
+    }
+
+    .cfg-toggle {
+      display: flex;
+      gap: 4px;
+    }
+
+    .cfg-toggle button {
+      padding: 4px 10px;
+      border: 1px solid var(--ink-faint);
+      background: transparent;
+      color: var(--ink-faint);
+      font-family: var(--sans);
+      font-size: 11px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.15s ease;
+    }
+
+    .cfg-toggle button:hover,
+    .cfg-toggle button.active {
+      color: var(--vermillion);
+      border-color: var(--vermillion);
+    }
+
+    .cfg-preview {
+      position: relative;
+      margin-bottom: 32px;
+      padding: 16px 20px;
+      border: 1px solid color-mix(in srgb, var(--ink-faint) 25%, transparent);
+      border-radius: 4px;
+      background: color-mix(in srgb, var(--ink-faint) 6%, transparent);
+      overflow-x: auto;
+    }
+
+    .cfg-preview code {
+      font-family: 'JetBrains Mono', 'SF Mono', monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--ink);
+      white-space: pre;
+    }
+
+    .cfg-copy {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      padding: 4px 10px;
+      border: 1px solid var(--ink-faint);
+      background: var(--paper);
+      color: var(--ink-faint);
+      font-family: var(--sans);
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.15s ease;
+    }
+
+    .cfg-copy:hover,
+    .cfg-copy.copied {
+      color: var(--vermillion);
+      border-color: var(--vermillion);
+    }
+
+    /* Demo override: force animations to play even when the OS asks for reduced motion.
+       loader.js keeps its accessible defaults; this override is demo-only so the
+       animation is always visible during visual review.
+
+       Uses higher specificity (.ld-wrap .ld-fill, etc.) rather than !important
+       so the animation's keyframes can still drive the value.
+       --ld-duration is set from the config slider, defaulting to 5s. */
+    @media (prefers-reduced-motion: reduce) {
+      .ld-wrap .ld-fill,
+      .ld-wrap .ld-char--fill {
+        animation:
+          var(--ld-rise-anim, ld-wave-rise-0-30-progress-0-100) var(--ld-duration, 5s) cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite var(--ld-direction, normal);
+      }
+      .ld-app .ld-app-line {
+        animation: ld-line-grow 0.6s 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+    }
+  </style>
+</head>
+<body data-theme="light">
+  <main>
+    <header>
+      <h1>漢流<span class="en">Liquid Loader</span></h1>
+      <div class="themes" role="group" aria-label="Theme">
+        <button data-set="light" class="active">light</button>
+        <button data-set="warm">warm</button>
+        <button data-set="dark">dark</button>
+        <button data-set="oled">oled</button>
+      </div>
+    </header>
+
+    <div class="config" role="group" aria-label="Loader options">
+      <label class="cfg-field">
+        <span class="cfg-label">Duration</span>
+        <input type="range" id="cfg-duration" min="1" max="10" step="0.5" value="5">
+        <output id="cfg-duration-out">5.0s</output>
+      </label>
+      <label class="cfg-field">
+        <span class="cfg-label">Amplitude</span>
+        <input type="range" id="cfg-amplitude" min="2" max="20" step="1" value="5">
+        <output id="cfg-amplitude-out">5</output>
+      </label>
+      <label class="cfg-field">
+        <span class="cfg-label">Sway</span>
+        <input type="range" id="cfg-sway" min="0" max="50" step="2" value="30">
+        <output id="cfg-sway-out">30px</output>
+      </label>
+      <label class="cfg-field">
+        <span class="cfg-label">Stops</span>
+        <input type="range" id="cfg-stops" min="0" max="6" step="1" value="0">
+        <output id="cfg-stops-out">0</output>
+      </label>
+      <div class="cfg-field">
+        <span class="cfg-label">Size</span>
+        <div class="cfg-toggle" id="size-toggle" role="group">
+          <button data-size="lg" class="active">lg</button>
+          <button data-size="sm">sm</button>
+        </div>
+      </div>
+      <div class="cfg-field">
+        <span class="cfg-label">Mode</span>
+        <div class="cfg-toggle" id="mode-toggle" role="group">
+          <button data-mode="progress" class="active">progress</button>
+          <button data-mode="spinner">spinner</button>
+        </div>
+      </div>
+      <label class="cfg-field">
+        <span class="cfg-label">Low Mark</span>
+        <input type="range" id="cfg-low" min="0" max="100" step="5" value="0">
+        <output id="cfg-low-out">0%</output>
+      </label>
+      <label class="cfg-field">
+        <span class="cfg-label">High Mark</span>
+        <input type="range" id="cfg-high" min="0" max="100" step="5" value="100">
+        <output id="cfg-high-out">100%</output>
+      </label>
+      <label class="cfg-field">
+        <span class="cfg-label">Char</span>
+        <input type="text" id="cfg-char" value="文" maxlength="2">
+      </label>
+    </div>
+
+    <div class="cfg-preview">
+      <button class="cfg-copy" id="cfg-copy">Copy</button>
+      <code id="cfg-code"></code>
+    </div>
+
+    <div class="grid">
+      <section class="panel" data-loader="logo"></section>
+      <section class="panel" data-loader="char"></section>
+      <section class="panel" data-loader="app"></section>
+    </div>
+
+    <footer>
+      The colored logo stays in place — a paper-colored wave rises from bottom to top, revealing it.<br>
+      <code>loader.js</code> · <code>HanologyLoader.create({ logoUrl, char, size, mode, amplitude, swayAmp, stops, variant })</code>
+    </footer>
+  </main>
+
+  <script src="loader.js"></script>
+  <script>
+    const LOGOS = {
+      light: '../logo/hanology-logo_logo-white.svg',
+      warm:  '../logo/hanology-logo_logo-white.svg',
+      dark:  '../logo/hanology-logo_logo-red.svg',
+      oled:  '../logo/hanology-logo_logo-red.svg',
+    };
+
+    const loaders = {
+      logo: null,
+      char: null,
+      app: null,
+    };
+
+    const cfg = {
+      mode: 'progress',
+      duration: 5,
+      amplitude: 5,
+      swayAmp: 30,
+      stops: 0,
+      size: 'lg',
+      char: '文',
+      lowMark: 0,
+      highMark: 100,
+    };
+
+    function mount() {
+      const theme = document.body.dataset.theme;
+      const logoUrl = LOGOS[theme];
+      const opts = { size: cfg.size, amplitude: cfg.amplitude, swayAmp: cfg.swayAmp, stops: cfg.stops, mode: cfg.mode, lowMark: cfg.lowMark, highMark: cfg.highMark };
+
+      loaders.logo = HanologyLoader.create({ ...opts, logoUrl, variant: 'route' });
+      loaders.char = HanologyLoader.create({ ...opts, char: cfg.char, variant: 'route' });
+      loaders.app  = HanologyLoader.create({ ...opts, logoUrl, variant: 'app' });
+
+      document.querySelector('[data-loader="logo"]').appendChild(loaders.logo);
+      document.querySelector('[data-loader="char"]').appendChild(loaders.char);
+      document.querySelector('[data-loader="app"]').appendChild(loaders.app);
+
+      addLabels();
+    }
+
+    function clearPanels() {
+      document.querySelectorAll('[data-loader]').forEach((p) => { p.innerHTML = ''; });
+    }
+
+    function rebuild() {
+      clearPanels();
+      mount();
+    }
+
+    function addLabels() {
+      const labels = {
+        logo: ['路由切換', 'Route fallback · logo'],
+        char: ['無標誌', 'Route fallback · 文 char'],
+        app:  ['初始載入', 'App initial load'],
+      };
+      for (const [key, [zh, en]] of Object.entries(labels)) {
+        const panel = document.querySelector(`[data-loader="${key}"]`);
+        if (!panel) continue;
+        const label = document.createElement('div');
+        label.className = 'panel-label';
+        label.innerHTML = `<span class="zh">${zh}</span>${en}`;
+        panel.appendChild(label);
+      }
+    }
+
+    function setTheme(theme) {
+      document.body.dataset.theme = theme;
+      document.querySelectorAll('.themes button').forEach(b =>
+        b.classList.toggle('active', b.dataset.set === theme));
+
+      const logoUrl = LOGOS[theme];
+      HanologyLoader.setLogo(loaders.logo, logoUrl);
+      HanologyLoader.setLogo(loaders.app, logoUrl);
+    }
+
+    document.querySelector('.themes').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-set]');
+      if (!btn) return;
+      setTheme(btn.dataset.set);
+    });
+
+    // --- Config wiring ---
+    const durationInput = document.getElementById('cfg-duration');
+    const durationOut = document.getElementById('cfg-duration-out');
+    const amplitudeInput = document.getElementById('cfg-amplitude');
+    const amplitudeOut = document.getElementById('cfg-amplitude-out');
+    const swayInput = document.getElementById('cfg-sway');
+    const swayOut = document.getElementById('cfg-sway-out');
+    const stopsInput = document.getElementById('cfg-stops');
+    const stopsOut = document.getElementById('cfg-stops-out');
+    const lowInput = document.getElementById('cfg-low');
+    const lowOut = document.getElementById('cfg-low-out');
+    const highInput = document.getElementById('cfg-high');
+    const highOut = document.getElementById('cfg-high-out');
+    const charInput = document.getElementById('cfg-char');
+
+    function setDuration(s) {
+      cfg.duration = s;
+      durationOut.textContent = s.toFixed(1) + 's';
+      document.documentElement.style.setProperty('--ld-duration', s + 's');
+      updatePreview();
+    }
+
+    function setAmplitude(a) {
+      cfg.amplitude = a;
+      amplitudeOut.textContent = a;
+      HanologyLoader.setAmplitude(loaders.logo, a);
+      HanologyLoader.setAmplitude(loaders.char, a);
+      HanologyLoader.setAmplitude(loaders.app, a);
+      updatePreview();
+    }
+
+    function setSway(a) {
+      cfg.swayAmp = a;
+      swayOut.textContent = a + 'px';
+      HanologyLoader.setSwayAmp(loaders.logo, a);
+      HanologyLoader.setSwayAmp(loaders.char, a);
+      HanologyLoader.setSwayAmp(loaders.app, a);
+      updatePreview();
+    }
+
+    function setStops(n) {
+      cfg.stops = n;
+      stopsOut.textContent = n;
+      HanologyLoader.setStops(loaders.logo, n);
+      HanologyLoader.setStops(loaders.char, n);
+      HanologyLoader.setStops(loaders.app, n);
+      updatePreview();
+    }
+
+    function setMarks(low, high) {
+      cfg.lowMark = low;
+      cfg.highMark = high;
+      lowOut.textContent = low + '%';
+      highOut.textContent = high + '%';
+      HanologyLoader.setMarks(loaders.logo, low, high);
+      HanologyLoader.setMarks(loaders.char, low, high);
+      HanologyLoader.setMarks(loaders.app, low, high);
+      updatePreview();
+    }
+
+    function setMode(mode) {
+      cfg.mode = mode;
+      HanologyLoader.setMode(loaders.logo, mode);
+      HanologyLoader.setMode(loaders.char, mode);
+      HanologyLoader.setMode(loaders.app, mode);
+      updatePreview();
+    }
+
+    durationInput.addEventListener('input', () => {
+      setDuration(parseFloat(durationInput.value));
+    });
+
+    amplitudeInput.addEventListener('input', () => {
+      setAmplitude(parseInt(amplitudeInput.value, 10));
+    });
+
+    swayInput.addEventListener('input', () => {
+      setSway(parseInt(swayInput.value, 10));
+    });
+
+    stopsInput.addEventListener('input', () => {
+      setStops(parseInt(stopsInput.value, 10));
+    });
+
+    lowInput.addEventListener('input', () => {
+      const low = parseInt(lowInput.value, 10);
+      const high = parseInt(highInput.value, 10);
+      setMarks(Math.min(low, high), Math.max(low, high));
+    });
+
+    highInput.addEventListener('input', () => {
+      const low = parseInt(lowInput.value, 10);
+      const high = parseInt(highInput.value, 10);
+      setMarks(Math.min(low, high), Math.max(low, high));
+    });
+
+    document.getElementById('size-toggle').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-size]');
+      if (!btn) return;
+      cfg.size = btn.dataset.size;
+      e.currentTarget.querySelectorAll('button').forEach(b =>
+        b.classList.toggle('active', b === btn));
+      rebuild();
+      updatePreview();
+    });
+
+    document.getElementById('mode-toggle').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-mode]');
+      if (!btn) return;
+      setMode(btn.dataset.mode);
+      e.currentTarget.querySelectorAll('button').forEach(b =>
+        b.classList.toggle('active', b === btn));
+    });
+
+    charInput.addEventListener('change', () => {
+      const v = charInput.value.trim() || '文';
+      charInput.value = v;
+      cfg.char = v;
+      rebuild();
+      updatePreview();
+    });
+
+    const codeEl = document.getElementById('cfg-code');
+    const copyBtn = document.getElementById('cfg-copy');
+
+    function updatePreview() {
+      codeEl.textContent =
+        `const loader = HanologyLoader.create({\n` +
+        `  logoUrl: 'logo.svg',\n` +
+        `  size: '${cfg.size}',\n` +
+        `  mode: '${cfg.mode}',\n` +
+        `  amplitude: ${cfg.amplitude},\n` +
+        `  swayAmp: ${cfg.swayAmp},\n` +
+        `  stops: ${cfg.stops},\n` +
+        `  lowMark: ${cfg.lowMark},\n` +
+        `  highMark: ${cfg.highMark},\n` +
+        `});\n\n` +
+        `loader.style.setProperty('--ld-duration', '${cfg.duration}s');\n` +
+        `document.body.appendChild(loader);`;
+    }
+
+    copyBtn.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(codeEl.textContent);
+      copyBtn.textContent = 'Copied';
+      copyBtn.classList.add('copied');
+      setTimeout(() => {
+        copyBtn.textContent = 'Copy';
+        copyBtn.classList.remove('copied');
+      }, 1500);
+    });
+
+    setDuration(cfg.duration);
+    mount();
+    updatePreview();
+  </script>
+</body>
+</html>
