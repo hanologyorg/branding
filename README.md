@@ -4,27 +4,67 @@ Source brand assets for the Hanology (漢流) project.
 
 The site at [hanology.github.io](https://github.com/mulgogi/hanology.github.io) consumes the logo SVGs from this repo via its `config.yaml`.
 
-## Contents
+The repo ships the logo in two forms:
 
-### `logo/`
+| Form | Directory | Use it for |
+|------|-----------|------------|
+| **Static logo** | `logo/` | Persistent branding — headers, footers, nav, print, documents, favicon |
+| **Dynamic logo** | `loading/` | Loading states — route transitions, initial app load, async waits |
 
-The Hanology logo in source and exported forms.
+Rule of thumb: if the logo sits still, use `logo/`. If it animates while the user waits, use `loading/`.
+
+## Static logo
+
+The canonical logo artwork as SVG exports, plus the designer's source PDF.
+
+### Files
 
 | File | Role |
 |------|------|
-| `hanology-logo.pdf` | Designer's source artwork (canonical) |
-| `hanology-logo_logo-red.svg` | Exported variant — red, used as `logoDark` |
-| `hanology-logo_logo-white.svg` | Exported variant — white, used as `logo` |
+| `logo/hanology-logo.pdf` | Designer's source artwork (canonical) |
+| `logo/hanology-logo_logo-white.svg` | White glyph — for dark backgrounds (site `logo`) |
+| `logo/hanology-logo_logo-red.svg` | Vermillion glyph — for light backgrounds (site `logoDark`) |
 
-### `loading/`
+### Usage
 
-A liquid-wave loading animation: the colored logo stays in place while a paper-colored wave rises from bottom to top, revealing it. The gray "ghost" of the logo remains visible above the waterline.
+Pick the variant by background color, then reference the SVG directly:
 
-- `loader.js` — the library; exposes `window.HanologyLoader`
-- `index.html` — interactive playground for all options
-- `_shots/` — Playwright verification scripts and captured frames
+```html
+<!-- Dark background → white glyph -->
+<img src="logo/hanology-logo_logo-white.svg" alt="Hanology">
 
-#### Quick start
+<!-- Light background → red glyph -->
+<img src="logo/hanology-logo_logo-red.svg" alt="Hanology">
+```
+
+For the hanology.github.io site, these are wired through `config.yaml`:
+
+- `logo` → `_logo-white.svg` — shown on the dark header
+- `logoDark` → `_logo-red.svg` — shown on the light header
+
+## Dynamic logo (liquid loader)
+
+The logo as a loading animation: a rising wavy waterline reveals the colored glyph while the desaturated ghost stays visible above the surface. It is a transitional element — use it during loading states, not as persistent branding.
+
+- `loading/loader.js` — the library; exposes `window.HanologyLoader`
+- `loading/index.html` — interactive playground for all options
+- `loading/_shots/` — Playwright verification scripts and captured frames
+
+### Choosing a mode
+
+| Mode | Behavior | Use when |
+|------|----------|----------|
+| `progress` | Rises one-way, then resets | Progress is deterministic — splash screen, known asset download, "starting up" |
+| `spinner` | Oscillates back and forth | Wait time is unknown — network request, indeterminate async |
+
+### Choosing a variant
+
+| Variant | Use for |
+|---------|---------|
+| `route` | Inline loader — route transitions, button states, card placeholders |
+| `app` | Full-page initial app load — wraps the loader with a trailing vermillion line |
+
+### Quick start
 
 ```html
 <script src="loading/loader.js"></script>
@@ -47,7 +87,7 @@ A liquid-wave loading animation: the colored logo stays in place while a paper-c
 
 If `logoUrl` is omitted, the loader renders the `char` glyph (default `文`) in place of the logo.
 
-#### Options
+### Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -64,7 +104,7 @@ If `logoUrl` is omitted, the loader renders the `char` glyph (default `文`) in 
 
 The rise always travels `lowMark → highMark`. In `progress` mode it does this one-way and loops; in `spinner` mode it oscillates between them.
 
-#### Runtime updates
+### Runtime updates
 
 Each option has a setter that updates an existing loader in place:
 
@@ -77,11 +117,11 @@ HanologyLoader.setMode(loader, 'spinner');
 HanologyLoader.setMarks(loader, 25, 75);   // lowMark, highMark
 ```
 
-#### Accessibility
+### Accessibility
 
 The animation honors `prefers-reduced-motion`: when reduce is requested, the waterline is pinned at the high mark and all motion stops. The demo page (`index.html`) overrides this for visual review only — the library itself keeps the accessible default.
 
-#### Live demo
+### Live demo
 
 Open `loading/index.html` in a browser for an interactive playground with sliders, theme switcher, and a copy-pasteable code preview.
 
